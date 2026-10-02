@@ -1,0 +1,27 @@
+# Virtual environments
+.venv/
+env/
+venv/
+
+# Large media files (raw camera video recordings exceeding Git limits)
+*.MOV
+*.mov
+*.mp4
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Scratch and intermediate artifacts
+extracted_images/
+*.log
+scratch/
+scratch_*.py
+logo_clean.png
+logo_source_raw.png
