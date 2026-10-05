@@ -92,6 +92,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initBookingForm();
   initJourney();
   initRoomEnquiries();
+  initDiscountModal();
+  initNearbyToggle();
 });
 
 /* ==========================================================================
@@ -320,5 +322,148 @@ function initJourney() {
       steps.forEach(s => s.classList.remove('current'));
       step.classList.add('current');
     });
+  });
+}
+
+/* ==========================================================================
+   10% SPECIAL DIRECT BOOKING OFFER POPUP (DISCOUNT MODAL)
+   ========================================================================== */
+function initDiscountModal() {
+  const modal = document.getElementById('discountModal');
+  if (!modal) return;
+
+  const closeBtn = document.getElementById('discountModalClose');
+  const maybeLaterBtn = document.getElementById('btnDiscountMaybeLater');
+  const copyBtn = document.getElementById('btnCopyCode');
+  const copyBtnLabel = document.getElementById('copyBtnLabel');
+  const bookBtn = document.getElementById('btnBookWithDiscount');
+
+  const STORAGE_DISMISSED = 'sriDurgaDiscountPopupDismissed';
+  const STORAGE_COPIED = 'sriDurgaDiscountCodeCopied';
+
+  try {
+    if (localStorage.getItem(STORAGE_DISMISSED) || localStorage.getItem(STORAGE_COPIED)) {
+      return;
+    }
+  } catch (e) {
+    // Graceful fallback if localStorage is disabled
+  }
+
+  let previousActiveElement = null;
+
+  const openModal = () => {
+    previousActiveElement = document.activeElement;
+    modal.classList.add('active');
+    modal.setAttribute('aria-hidden', 'false');
+    if (closeBtn) closeBtn.focus();
+  };
+
+  const closeModal = (recordDismissal = true) => {
+    modal.classList.remove('active');
+    modal.setAttribute('aria-hidden', 'true');
+    if (recordDismissal) {
+      try {
+        localStorage.setItem(STORAGE_DISMISSED, 'true');
+      } catch (e) {}
+    }
+    if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
+      previousActiveElement.focus();
+    }
+  };
+
+  // Automatically show ~5 seconds after page load
+  setTimeout(() => {
+    openModal();
+  }, 5000);
+
+  // Close triggers
+  if (closeBtn) closeBtn.addEventListener('click', () => closeModal(true));
+  if (maybeLaterBtn) maybeLaterBtn.addEventListener('click', () => closeModal(true));
+
+  // Light dismiss: click outside dialog box
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      closeModal(true);
+    }
+  });
+
+  // Close on ESC
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('active')) {
+      closeModal(true);
+    }
+  });
+
+  // Copy discount code UX
+  if (copyBtn) {
+    copyBtn.addEventListener('click', () => {
+      const code = 'SD10';
+      const onSuccess = () => {
+        if (copyBtnLabel) copyBtnLabel.textContent = '✓ Code Copied';
+        copyBtn.classList.add('copied');
+        try {
+          localStorage.setItem(STORAGE_COPIED, 'true');
+        } catch (e) {}
+
+        setTimeout(() => {
+          if (copyBtnLabel) copyBtnLabel.textContent = 'Copy Code';
+          copyBtn.classList.remove('copied');
+        }, 2000);
+      };
+
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        navigator.clipboard.writeText(code).then(onSuccess).catch(() => {
+          fallbackCopyText(code, onSuccess);
+        });
+      } else {
+        fallbackCopyText(code, onSuccess);
+      }
+    });
+  }
+
+  // Book with 10% off CTA dismisses modal
+  if (bookBtn) {
+    bookBtn.addEventListener('click', () => {
+      closeModal(true);
+    });
+  }
+}
+
+function fallbackCopyText(text, callback) {
+  try {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.top = '-9999px';
+    textArea.style.left = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    if (callback) callback();
+  } catch (err) {
+    if (callback) callback();
+  }
+}
+
+/* ==========================================================================
+   NEARBY PLACES 30 KM EXPANSION CONTROLLER
+   ========================================================================== */
+function initNearbyToggle() {
+  const toggleBtn = document.getElementById('btnToggleDiscovery');
+  const extendedGrid = document.getElementById('nearbyExtendedGrid');
+  if (!toggleBtn || !extendedGrid) return;
+
+  toggleBtn.addEventListener('click', () => {
+    const isOpen = extendedGrid.classList.toggle('open');
+    toggleBtn.classList.toggle('active', isOpen);
+    toggleBtn.setAttribute('aria-expanded', isOpen.toString());
+    const labelSpan = toggleBtn.querySelector('span');
+    if (labelSpan) {
+      labelSpan.textContent = isOpen 
+        ? 'Show Fewer Places' 
+        : 'Discover More Places Within ~30 KM';
+    }
   });
 }
